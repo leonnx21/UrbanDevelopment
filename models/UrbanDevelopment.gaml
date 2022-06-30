@@ -14,7 +14,6 @@ global {
 	graph road_network;
 	path shortest_path;
 	
-	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
 	int y <- round(shape.width/size);
@@ -54,9 +53,7 @@ species roads{
 			loop i over: my_plots{
 				loop j over: i.neighbors{
 					j.is_free <-true;
-				}
-				i.is_free <-false;
-				
+				}				
 			}
 	}	
 	
@@ -77,6 +74,7 @@ species homes {
 	plot my_plot;
 	point source;
 	point target;
+	geometry g;
 		
 	init {
 		my_plot <- one_of(plot where (each.is_free = true));
@@ -84,25 +82,21 @@ species homes {
 		my_plot.is_free <- false;
 	}
 	
-
 	
 	reflex{
-		loop i over: businesses{
-			loop j over: businesses{
-				if (i != j)
-				{				
-					shortest_path <- road_network path_between(i,j);
-					write(shortest_path);
-//					geometry sp <- envelope(shortest_path);
-//					list<plot> p <- plot overlapping sp;
-//					create homes{
-//						my_plot <- one_of(p);
-//						location <- my_plot.location;
-//					}
-				}
-			}
+		source <- one_of(businesses);
+		target <- one_of(businesses);
+		shortest_path <- road_network path_between(source,target);
+		geometry sp <- shortest_path;	
+		
+		list<plot> p <- plot overlapping sp;
+		create homes{
+			my_plot <- one_of(p);
 		}
+		 	
 	}
+
+
 
 	aspect default{
         draw square(size) color: #red;
@@ -159,7 +153,7 @@ experiment UrbanDevelopment type: gui {
 			species roads;
 			species homes transparency:0.5;
 			species businesses transparency:0.5;
-			species greensquare;
+			species greensquare transparency:0.5;
 			grid plot transparency:0.7 border:#red;
 			event 'g' action: my_action;
 			
