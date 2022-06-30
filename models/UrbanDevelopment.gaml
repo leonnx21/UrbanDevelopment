@@ -21,7 +21,7 @@ global {
 
 	init{
 			create roads from: road_shapefile;
-			//road_network <- as_edge_graph(roads);
+			road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
 			create homes number: 10;
@@ -75,8 +75,8 @@ species buildings{
 //property of buildings: number of inhabitants, hapiness level  
 species homes {
 	plot my_plot;
-	//point source;
-	//point target;
+	point source;
+	point target;
 		
 	init {
 		my_plot <- one_of(plot where (each.is_free = true));
@@ -84,19 +84,15 @@ species homes {
 		my_plot.is_free <- false;
 	}
 	
+
+	
 	reflex{
 		loop i over: businesses{
 			loop j over: businesses{
 				if (i != j)
-				{		
-					list<point> source <- road_network overlapping i; 
-					list<point> target <- road_network overlapping j; 
-					write("source: "+source);
-					write("target: "+target);
-					
-//					write("b1: "+i);
-//					write("b2: "+j);			
-//					shortest_path <- road_network path_between(source,target);
+				{				
+					shortest_path <- road_network path_between(i,j);
+					write(shortest_path);
 //					geometry sp <- envelope(shortest_path);
 //					list<plot> p <- plot overlapping sp;
 //					create homes{
