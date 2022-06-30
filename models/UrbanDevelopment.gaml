@@ -19,12 +19,12 @@ global {
 
 	init{
 			create roads from: road_shapefile;
-			road_network <- as_edge_graph(roads);
+			//road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			//create homes number: 100;
-			//create businesses number: 100;
-			//create greensquare number: 100;
+			create homes number: 200;
+			create businesses number: 200;
+			create greensquare number: 200;
 	}
 	
 	action my_action
@@ -48,15 +48,14 @@ species roads{
 	//plot my_plot;
 	
 	init {
-		list<plot> my_plots <- plot overlapping self.location;
-		loop i over: my_plots{
-			i.is_free <-false;
-		}
-
+		list<plot> my_plots <- plot overlapping self;
+			loop i over: my_plots{
+				i.is_free <-false;
+			}
 	}	
 	
 	aspect default {
-		draw (shape + 10) color: #black;
+		draw (shape+100) color: #black;
 	}
 }
 
@@ -65,9 +64,9 @@ species buildings{
 	plot my_plot;
 		
 	init {
-		//my_plot <- one_of(plot where (each.is_free = true));
-		//location <- my_plot.location;
-		//my_plot.is_free <- false;
+		my_plot <- one_of(plot where (each.is_free = true));
+		location <- my_plot.location;
+		my_plot.is_free <- false;
 	}
 }
 
