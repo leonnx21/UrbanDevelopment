@@ -11,7 +11,9 @@ global {
 	shape_file road_shapefile <- shape_file("../includes/roads15_3.shp");
 	
 	geometry shape <- envelope(road_shapefile);
-	//graph road_network;
+	graph road_network;
+	path shortest_path;
+	
 	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
@@ -22,8 +24,8 @@ global {
 			//road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			create homes number: 500;
-			create businesses number: 500;
+			create homes number: 10;
+			create businesses number: 50;
 			//create greensquare number: 200;
 	}
 	
@@ -50,10 +52,11 @@ species roads{
 	init {
 		list<plot> my_plots <- plot overlapping self;
 			loop i over: my_plots{
-				//i.is_free <-false;
 				loop j over: i.neighbors{
 					j.is_free <-true;
 				}
+				i.is_free <-false;
+				
 			}
 	}	
 	
@@ -72,6 +75,8 @@ species buildings{
 //property of buildings: number of inhabitants, hapiness level  
 species homes {
 	plot my_plot;
+	//point source;
+	//point target;
 		
 	init {
 		my_plot <- one_of(plot where (each.is_free = true));
@@ -80,7 +85,27 @@ species homes {
 	}
 	
 	reflex{
-		//TODO
+		loop i over: businesses{
+			loop j over: businesses{
+				if (i != j)
+				{		
+					list<point> source <- road_network overlapping i; 
+					list<point> target <- road_network overlapping j; 
+					write("source: "+source);
+					write("target: "+target);
+					
+//					write("b1: "+i);
+//					write("b2: "+j);			
+//					shortest_path <- road_network path_between(source,target);
+//					geometry sp <- envelope(shortest_path);
+//					list<plot> p <- plot overlapping sp;
+//					create homes{
+//						my_plot <- one_of(p);
+//						location <- my_plot.location;
+//					}
+				}
+			}
+		}
 	}
 
 	aspect default{
