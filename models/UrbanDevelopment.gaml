@@ -11,7 +11,7 @@ global {
 	shape_file road_shapefile <- shape_file("../includes/roads15_3.shp");
 	
 	geometry shape <- envelope(road_shapefile);
-	graph road_network;
+	//graph road_network;
 	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
@@ -22,9 +22,9 @@ global {
 			//road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			create homes number: 200;
-			create businesses number: 200;
-			create greensquare number: 200;
+			create homes number: 500;
+			create businesses number: 500;
+			//create greensquare number: 200;
 	}
 	
 	action my_action
@@ -36,7 +36,7 @@ global {
 
 //x and y needs to adapt to shape file road dynamically
 grid plot height: x width: y neighbors: 8{
-	bool is_free <- true;
+	bool is_free <- false;
 	
 	aspect default{
 			draw square(size) ;			
@@ -50,7 +50,10 @@ species roads{
 	init {
 		list<plot> my_plots <- plot overlapping self;
 			loop i over: my_plots{
-				i.is_free <-false;
+				//i.is_free <-false;
+				loop j over: i.neighbors{
+					j.is_free <-true;
+				}
 			}
 	}	
 	
@@ -61,6 +64,13 @@ species roads{
 
 //Needs to add reflex destroy, build
 species buildings{
+	
+}
+
+//inherits from building
+//location bases on happiness level
+//property of buildings: number of inhabitants, hapiness level  
+species homes {
 	plot my_plot;
 		
 	init {
@@ -68,12 +78,6 @@ species buildings{
 		location <- my_plot.location;
 		my_plot.is_free <- false;
 	}
-}
-
-//inherits from building
-//location bases on happiness level
-//property of buildings: number of inhabitants, hapiness level  
-species homes parent:buildings{
 	
 	reflex{
 		//TODO
@@ -88,11 +92,16 @@ species homes parent:buildings{
 //location bases on number of inhabitants
 // buiness creates jobs, facility --> increase hapiness --> need formula
 //businesses creates pollution -> decrease hapiness
-species businesses parent:buildings{
+species businesses{
 	
-	init{
-		//TODO
+	plot my_plot;
+		
+	init {
+		my_plot <- one_of(plot where (each.is_free = true));
+		location <- my_plot.location;
+		my_plot.is_free <- false;
 	}
+	
 	
 	aspect default{
         draw square(size) color: #blue;
@@ -100,15 +109,16 @@ species businesses parent:buildings{
 }
 
 //locations are decided by government/users
-species greensquare parent:buildings{
+species greensquare {
 	plot my_plot;
-	//geometry dummysq <- square(size, location::#user_location);
-	
+		
 	init{
 		my_plot <- first(plot overlapping #user_location);
 		if (my_plot.is_free = true){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
+		}else{
+			do die;
 		}
 	}
 		
@@ -126,8 +136,8 @@ experiment UrbanDevelopment type: gui {
 	output {
  		display map {
 			species roads;
-			species homes;
-			species businesses;
+			species homes transparency:0.5;
+			species businesses transparency:0.5;
 			species greensquare;
 			grid plot transparency:0.7 border:#red;
 			event 'g' action: my_action;
