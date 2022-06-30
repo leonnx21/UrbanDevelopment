@@ -11,7 +11,7 @@ global {
 	shape_file road_shapefile <- shape_file("../includes/roads15_3.shp");
 		
 	geometry shape <- envelope(road_shapefile);
-	int size <- 100;
+	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
 	int y <- round(shape.width/size);
 
@@ -23,6 +23,11 @@ global {
 			//create businesses number: 100;
 			//create greensquare number: 100;
 	}
+	
+	action my_action
+    {
+        create greensquare number: 1;
+    }
 	
 }
 
@@ -48,7 +53,7 @@ species buildings{
 	
 	init {
 		my_plot <- one_of(plot where (each.is_free = true));
-		location <- my_plot.location;
+		//location <- my_plot.location;
 		my_plot.is_free <- false;
 	}
 }
@@ -84,20 +89,35 @@ species businesses parent:buildings{
 
 //locations are decided by government/users
 species greensquare parent:buildings{
+	plot my_plot;
+	//geometry dummysq <- square(size, location::#user_location);
 	
 	init{
-		//TODO
+		create pointer with: [location::#user_location];
+		my_plot <- first(plot overlapping (first(pointer)));
+		if (my_plot.is_free = true){
+			location <- my_plot.location;
+		}
+		ask pointer{
+			do die;
+		}
 	}
-	
+		
+		
 	aspect default{
         draw square(size) color: #green;
     }
+}
+
+species pointer {
+	geometry shape<- square(size/1000) ;
 }
 
 
 experiment UrbanDevelopment type: gui {
 	/** Insert here the definition of the input and output of the model */
 	parameter "size of buildings" var:size;
+
 	
 	output {
  		display map {
@@ -106,6 +126,7 @@ experiment UrbanDevelopment type: gui {
 			species businesses;
 			species greensquare;
 			grid plot transparency:0.7 border:#red;
+			event 'g' action: my_action;
 			
 		}
 	}
