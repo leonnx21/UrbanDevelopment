@@ -23,8 +23,8 @@ global {
 			road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			create homes number: 1;
-			create businesses number: 20;
+			create homes number: 10;
+			create businesses number: 10;
 			
 	}
 	
@@ -39,6 +39,7 @@ global {
 grid plot height: x width: y neighbors: 8{
 	bool is_free <- false;
 	string type;
+
 	
 	aspect default{
 			draw square(size);			
@@ -84,12 +85,12 @@ species homes {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-//			write("home at random location");
+			write("home at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-//			write("home at selected location");
+			write("home at selected location "+ my_plot);
 		}
 	}
 		
@@ -147,21 +148,21 @@ species businesses{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			write("business at selected location");
+			write("business at selected location:"+ my_plot);
 		}
 	}
 	
 	reflex new_business{
-		plot new_plot <- one_of(plot where (each.is_free = true));
-		int nbhomes;
-		loop i over: new_plot.neighbors{
-			if(i.type = "home"){
-				nbhomes <- nbhomes +1;
+		plot home_plot <- one_of(plot where(each.type = "home"));
+		plot new_plot <- one_of(home_plot.neighbors where(each.is_free = true));
+		
+		if(new_plot != nil){
+			int nbhome <- count(new_plot.neighbors, each.type = "home");
+			write ("number of home: "+nbhome);
+			if (nbhome >2)
+			{
+				create businesses number: 1 with: (my_plot: new_plot);	
 			}
-		if (nbhomes > 1){
-			create businesses number: 1 with: (my_plot: new_plot);
-		}
-//		write("number of homes:"+ nbhomes);
 		}
 		
 	}
