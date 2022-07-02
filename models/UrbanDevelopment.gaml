@@ -14,6 +14,7 @@ global {
 	graph road_network;
 	path shortest_path;
 	
+	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
 	int y <- round(shape.width/size);
@@ -23,8 +24,9 @@ global {
 			road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			create homes number: 10;
-			create businesses number: 50;
+			create homes number: 1;
+			create businesses number: 2;
+			//create inhabitants number: 10000;
 			//create greensquare number: 200;
 	}
 	
@@ -40,7 +42,7 @@ grid plot height: x width: y neighbors: 8{
 	bool is_free <- false;
 	
 	aspect default{
-			draw square(size) ;			
+			draw square(size);			
 		}		
 }
 
@@ -53,7 +55,8 @@ species roads{
 			loop i over: my_plots{
 				loop j over: i.neighbors{
 					j.is_free <-true;
-				}				
+				}
+//			i.is_free <- false;				
 			}
 	}	
 	
@@ -77,31 +80,56 @@ species homes {
 	geometry g;
 		
 	init {
-		my_plot <- one_of(plot where (each.is_free = true));
-		location <- my_plot.location;
-		my_plot.is_free <- false;
+		if(my_plot = nil){
+			my_plot <- one_of(plot where (each.is_free = true));
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			
+			
+			create inhabitants number: rnd(100) {
+					location <- any_location_in(myself.my_plot);
+			}
+			
+			
+		}else{
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+		}
+		
 	}
 	
 	
 	reflex{
 		source <- one_of(businesses);
 		target <- one_of(businesses);
-		shortest_path <- road_network path_between(source,target);
-		geometry sp <- shortest_path;	
+		write (source);
+		write (target);
+		shortest_path <- path_between(road_network, source,target);
 		
+		geometry sp <- shortest_path.shape;			
 		list<plot> p <- plot overlapping sp;
+		
+		write(p);
+		
 		create homes{
 			my_plot <- one_of(p);
 		}
 		 	
 	}
 
-
-
 	aspect default{
         draw square(size) color: #red;
     }
 }
+
+species inhabitants{
+		
+	aspect default {
+		draw circle(size/50) color: #yellow;
+	}
+	
+}
+
 
 //inherits from buildings
 //location bases on number of inhabitants
@@ -154,7 +182,8 @@ experiment UrbanDevelopment type: gui {
 			species homes transparency:0.5;
 			species businesses transparency:0.5;
 			species greensquare transparency:0.5;
-			grid plot transparency:0.7 border:#red;
+			species inhabitants;
+			grid plot transparency:0.7 border:#black;
 			event 'g' action: my_action;
 			
 		}
