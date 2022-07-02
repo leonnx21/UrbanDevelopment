@@ -23,11 +23,9 @@ global {
 			road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			create homes number:500;
-			create businesses number: 2;
-			//create households;
-			//create inhabitants number: 10000;
-			//create greensquare number: 200;
+			create homes number: 1;
+			create businesses number: 20;
+			
 	}
 	
 	action my_action
@@ -95,15 +93,10 @@ species homes {
 		}
 	}
 		
-//	action build_home {
-//			location <- my_plot.location;
-//			my_plot.is_free <- false;
-//			write("build home at: "+location);
-//	}
 
 	reflex new_home{
-		source <- businesses[0];
-		target <- businesses[1];
+		source <- one_of(businesses);
+		target <- one_of(businesses);
 		
 		if (source != target)
 		{
@@ -144,10 +137,19 @@ species businesses{
 	plot my_plot;
 		
 	init {
-		my_plot <- one_of(plot where (each.is_free = true));
-		location <- my_plot.location;
-		my_plot.is_free <- false;
-	}	
+		if(my_plot = nil){
+			my_plot <- one_of(plot where (each.is_free = true));
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			my_plot.type <-"business";
+			write("business at random location");
+		}else{
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			my_plot.type <-"business";
+			write("business at selected location");
+		}
+	}
 	
 	reflex new_business{
 		plot new_plot <- one_of(plot where (each.is_free = true));
@@ -156,7 +158,10 @@ species businesses{
 			if(i.type = "home"){
 				nbhomes <- nbhomes +1;
 			}
-		write("number of homes:"+ nbhomes);
+		if (nbhomes > 1){
+			create businesses number: 1 with: (my_plot: new_plot);
+		}
+//		write("number of homes:"+ nbhomes);
 		}
 		
 	}
