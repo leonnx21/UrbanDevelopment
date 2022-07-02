@@ -14,7 +14,6 @@ global {
 	graph road_network;
 	path shortest_path;
 	
-	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
 	int y <- round(shape.width/size);
@@ -24,9 +23,9 @@ global {
 			road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			//create homes;
+			create homes number:500;
 			create businesses number: 2;
-			create households;
+			//create households;
 			//create inhabitants number: 10000;
 			//create greensquare number: 200;
 	}
@@ -41,6 +40,7 @@ global {
 //x and y needs to adapt to shape file road dynamically
 grid plot height: x width: y neighbors: 8{
 	bool is_free <- false;
+	string type;
 	
 	aspect default{
 			draw square(size);			
@@ -68,39 +68,6 @@ species roads{
 	}
 }
 
-species households{
-	point source;
-	point target;
-	
-	reflex new_home{
-		source <- businesses[0];
-		target <- businesses[1];
-		
-		if (source != target)
-		{
-			write ("source: "+ source);
-			write ("target: "+ target);
-			
-			shortest_path <- path_between(road_network, source,target);
-			
-			geometry sp <- shortest_path.shape;	
-			write("shortest path: " +sp);
-					
-			list<plot> pl <- plot overlapping sp;
-			write("plot: "+ pl);	
-			
-			plot p <- one_of(pl);
-			
-			if (p.is_free = true){
-				create homes number: 1 with: (my_plot: p);
-			}
-			
-			
-			}
-			
-	}
-	
-	}
 			
 //inherits from building
 //location bases on happiness level
@@ -115,14 +82,16 @@ species homes {
 	
 	init {
 		if(my_plot = nil){
-//			my_plot <- one_of(plot where (each.is_free = true));
-//			location <- my_plot.location;
-//			my_plot.is_free <- false;
+			my_plot <- one_of(plot where (each.is_free = true));
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			my_plot.type <-"home";
 //			write("home at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
-			write("home at selected location");
+			my_plot.type <-"home";
+//			write("home at selected location");
 		}
 	}
 		
@@ -131,6 +100,33 @@ species homes {
 //			my_plot.is_free <- false;
 //			write("build home at: "+location);
 //	}
+
+	reflex new_home{
+		source <- businesses[0];
+		target <- businesses[1];
+		
+		if (source != target)
+		{
+//			write ("source: "+ source);
+//			write ("target: "+ target);
+			
+			shortest_path <- path_between(road_network, source,target);
+			
+			geometry sp <- shortest_path.shape;	
+//			write("shortest path: " +sp);
+					
+			list<plot> pl <- plot overlapping sp;
+//			write("plot: "+ pl);	
+			
+			plot p <- one_of(one_of(pl).neighbors);
+			
+			if (p.is_free = true){
+				create homes number: 1 with: (my_plot: p);
+			}
+			
+			}
+			
+	}
 
 	aspect default{
         draw square(size) color: #red;
@@ -152,6 +148,18 @@ species businesses{
 		location <- my_plot.location;
 		my_plot.is_free <- false;
 	}	
+	
+	reflex new_business{
+		plot new_plot <- one_of(plot where (each.is_free = true));
+		int nbhomes;
+		loop i over: new_plot.neighbors{
+			if(i.type = "home"){
+				nbhomes <- nbhomes +1;
+			}
+		write("number of homes:"+ nbhomes);
+		}
+		
+	}
 	
 	
 	aspect default{
