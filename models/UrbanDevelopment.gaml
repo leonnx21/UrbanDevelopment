@@ -63,7 +63,7 @@ species roads{
 	init {
 		my_plots <- plot overlapping self;
 			loop i over: my_plots{
-				i.color <- #red;
+//				i.color <- #red;
 				loop j over: i.neighbors{
 					j.is_free <-true;
 //					j.pol <-1;
