@@ -12,7 +12,7 @@ global {
 	
 	geometry shape <- envelope(road_shapefile);
 	graph road_network;
-	path shortest_path;
+	path shortest_path;	
 	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
@@ -22,10 +22,10 @@ global {
 			create roads from: road_shapefile;
 			road_network <- as_edge_graph(roads);
 			
+			
 			//created dummy for illustration in development
 			create homes number: 10;
 			create businesses number: 10;
-			
 	}
 	
 	action my_action
@@ -39,28 +39,39 @@ global {
 grid plot height: x width: y neighbors: 8{
 	bool is_free <- false;
 	string type;
-
+	int pol;
+	int nbpol;
+	
+	reflex updatepol{
+		loop i over: self.neighbors{
+			nbpol <- pol;
+			nbpol <- nbpol + i.pol;	
+		}
+	}
 	
 	aspect default{
-			draw square(size);			
-		}		
+		draw square(size);			
+	}		
 }
 
 
 
 //traffic creates pollutions
 species roads{
-	//plot my_plot;
-	
+	list<plot> my_plots;
 	init {
-		list<plot> my_plots <- plot overlapping self;
+		my_plots <- plot overlapping self;
 			loop i over: my_plots{
+				i.color <- #red;
 				loop j over: i.neighbors{
 					j.is_free <-true;
+//					j.pol <-1;
 				}
-//			i.is_free <- false;				
-			}
+//				i.pol <-2;
+			}	
+//		write my_plots;
 	}	
+	
 	
 	aspect default {
 		draw (shape+100) color: #black;
@@ -85,12 +96,14 @@ species homes {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-			write("home at random location");
+			my_plot.pol <- 3;
+//			write("home at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-			write("home at selected location "+ my_plot);
+			my_plot.pol <- 3;
+//			write("home at selected location "+ my_plot);
 		}
 	}
 		
@@ -143,12 +156,14 @@ species businesses{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			write("business at random location");
+			my_plot.pol <- 5;
+//			write("business at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			write("business at selected location:"+ my_plot);
+			my_plot.pol <- 5;
+//			write("business at selected location:"+ my_plot);
 		}
 	}
 	
@@ -158,7 +173,7 @@ species businesses{
 		
 		if(new_plot != nil){
 			int nbhome <- count(new_plot.neighbors, each.type = "home");
-			write ("number of home: "+nbhome);
+//			write ("number of home: "+nbhome);
 			if (nbhome >2)
 			{
 				create businesses number: 1 with: (my_plot: new_plot);	
@@ -182,6 +197,7 @@ species greensquare {
 		if (my_plot.is_free = true){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
+			my_plot.pol <- -3;
 		}else{
 			do die;
 		}
