@@ -8,6 +8,7 @@ global {
 	path shortest_path;
 	float close_down_rate <- 0.001;
 	int tax;
+	int index <- 1;
 	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
@@ -21,6 +22,11 @@ global {
 			create homes number: 1;
 			create businesses number: 2;
 			
+	}
+	
+	reflex pause_experiment when: time= index*10{
+		index <- index +1;
+		do pause;
 	}
 	
 	action my_action
@@ -204,11 +210,13 @@ species greensquare {
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
 			write("case 1");
+			tax <- tax-100;
 		}else if(my_plot.is_free = false and my_plot.type = nil){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
 			write("case 1.1");
+			tax <- tax-50;
 		}else if(my_plot.is_free = false and my_plot.type ="home"){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
@@ -216,6 +224,7 @@ species greensquare {
 			ask homes overlapping my_plot{
 				do die;
 			}
+			tax <- tax-200;
 			write("case 2");
 		}
 		else if(my_plot.is_free = false and my_plot.type ="business"){
@@ -225,6 +234,12 @@ species greensquare {
 			ask businesses overlapping my_plot{
 				do die;
 			}
+			if !(tax - 400 < 0){
+				tax <- tax-400;
+			}else{
+				write("not enough money!");
+			}
+			
 			write("case 3");
 			}
 		else{
@@ -255,7 +270,7 @@ experiment UrbanDevelopment type: gui {
 			event 'g' action: my_action;
 		}
 		
-		monitor "Tax amount" value: tax;
+		monitor "Tax amount" value: tax refresh: true;
 		
 		
 	}
