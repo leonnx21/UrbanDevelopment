@@ -17,10 +17,10 @@ global {
 			create roads from: road_shapefile;
 			road_network <- as_edge_graph(roads);
 			
-			//created dummy for illustration in development
-			create homes number: 1;
-			create businesses number: 2;
 			
+			//created dummy for illustration in development
+			create homes number: 10;
+			create businesses number: 10;
 	}
 	
 	action my_action
@@ -34,28 +34,39 @@ global {
 grid plot height: x width: y neighbors: 8{
 	bool is_free <- false;
 	string type;
-
+	int pol;
+	int nbpol;
+	
+	reflex updatepol{
+		loop i over: self.neighbors{
+			nbpol <- pol;
+			nbpol <- nbpol + i.pol;	
+		}
+	}
 	
 	aspect default{
-			draw square(size);			
-		}		
+		draw square(size);			
+	}		
 }
 
 
 
 //traffic creates pollutions
 species roads{
-	//plot my_plot;
-	
+	list<plot> my_plots;
 	init {
-		list<plot> my_plots <- plot overlapping self;
+		my_plots <- plot overlapping self;
 			loop i over: my_plots{
+				i.color <- #red;
 				loop j over: i.neighbors{
 					j.is_free <-true;
+//					j.pol <-1;
 				}
-//			i.is_free <- false;				
-			}
+//				i.pol <-2;
+			}	
+//		write my_plots;
 	}	
+	
 	
 	aspect default {
 		draw (shape+100) color: #black;
@@ -81,12 +92,14 @@ species homes {
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
 			tax <- tax+10;
+			my_plot.pol <- 3;
 //			write("home at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
 			tax <- tax+10;
+			my_plot.pol <- 3;
 //			write("home at selected location "+ my_plot);
 		}
 	}
@@ -153,12 +166,14 @@ species businesses{
 			my_plot.type <-"business";
 			tax <- tax+20;
 			
+			my_plot.pol <- 5;
 //			write("business at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
 			tax <- tax+20;
+			my_plot.pol <- 5;
 //			write("business at selected location:"+ my_plot);
 		}
 	}
