@@ -224,18 +224,21 @@ species greensquare {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
+			my_plot.pol <- -5;
 			write("case 1");
 			tax <- tax-100;
 		}else if(my_plot.is_free = false and my_plot.type = nil){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
+			my_plot.pol <- -5;
 			write("case 1.1");
 			tax <- tax-50;
 		}else if(my_plot.is_free = false and my_plot.type ="home"){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
+			my_plot.pol <- -5;
 			ask homes overlapping my_plot{
 				do die;
 			}
@@ -246,6 +249,7 @@ species greensquare {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
+			my_plot.pol <- -5;
 			ask businesses overlapping my_plot{
 				do die;
 			}
