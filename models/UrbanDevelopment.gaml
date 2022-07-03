@@ -1,10 +1,3 @@
-/**
-* Name: NewModel
-* Based on the internal skeleton template. 
-* Author: LeonNguyen
-* Tags: 
-*/
-
 model NewModel
 
 global {	
@@ -13,6 +6,8 @@ global {
 	geometry shape <- envelope(road_shapefile);
 	graph road_network;
 	path shortest_path;
+	float close_down_rate <- 0.001;
+	int tax;
 	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
@@ -23,8 +18,8 @@ global {
 			road_network <- as_edge_graph(roads);
 			
 			//created dummy for illustration in development
-			create homes number: 10;
-			create businesses number: 10;
+			create homes number: 1;
+			create businesses number: 2;
 			
 	}
 	
@@ -85,12 +80,14 @@ species homes {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-			write("home at random location");
+			tax <- tax+10;
+//			write("home at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-			write("home at selected location "+ my_plot);
+			tax <- tax+10;
+//			write("home at selected location "+ my_plot);
 		}
 	}
 		
@@ -121,6 +118,17 @@ species homes {
 			}
 			
 	}
+	
+	reflex destroy_home when: flip(close_down_rate){
+		my_plot.is_free <- false;
+		my_plot.type <- nil;
+		do die;
+	}
+	
+	
+//	reflex new_random_home when: flip(close_down_rate){
+//		create homes number: 1 with: (my_plot: one_of(my_plot.neighbors));
+//	}
 
 	aspect default{
         draw square(size) color: #red;
@@ -143,12 +151,15 @@ species businesses{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			write("business at random location");
+			tax <- tax+20;
+			
+//			write("business at random location");
 		}else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			write("business at selected location:"+ my_plot);
+			tax <- tax+20;
+//			write("business at selected location:"+ my_plot);
 		}
 	}
 	
@@ -158,7 +169,7 @@ species businesses{
 		
 		if(new_plot != nil){
 			int nbhome <- count(new_plot.neighbors, each.type = "home");
-			write ("number of home: "+nbhome);
+//			write ("number of home: "+nbhome);
 			if (nbhome >2)
 			{
 				create businesses number: 1 with: (my_plot: new_plot);	
@@ -167,6 +178,15 @@ species businesses{
 		
 	}
 	
+	reflex close_business when: flip(close_down_rate){
+		my_plot.is_free <- false;
+		my_plot.type <- nil;
+		do die;
+	}
+	
+//	reflex new_random_business when: flip(close_down_rate){
+//		create businesses number: 1 with: (my_plot: one_of(my_plot.neighbors));
+//	}
 	
 	aspect default{
         draw square(size) color: #blue;
@@ -179,11 +199,38 @@ species greensquare {
 		
 	init{
 		my_plot <- first(plot overlapping #user_location);
-		if (my_plot.is_free = true){
+		if (my_plot.is_free =true){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
-		}else{
+			my_plot.type <- "green";
+			write("case 1");
+		}else if(my_plot.is_free = false and my_plot.type = nil){
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			my_plot.type <- "green";
+			write("case 1.1");
+		}else if(my_plot.is_free = false and my_plot.type ="home"){
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			my_plot.type <- "green";
+			ask homes overlapping my_plot{
+				do die;
+			}
+			write("case 2");
+		}
+		else if(my_plot.is_free = false and my_plot.type ="business"){
+			location <- my_plot.location;
+			my_plot.is_free <- false;
+			my_plot.type <- "green";
+			ask businesses overlapping my_plot{
+				do die;
+			}
+			write("case 3");
+			}
+		else{
+			write("case 4");
 			do die;
+			
 		}
 	}
 		
@@ -206,8 +253,11 @@ experiment UrbanDevelopment type: gui {
 			species greensquare transparency:0.5;
 			grid plot transparency:0.7 border:#black;
 			event 'g' action: my_action;
-			
 		}
+		
+		monitor "Tax amount" value: tax;
+		
+		
 	}
 		
 }
