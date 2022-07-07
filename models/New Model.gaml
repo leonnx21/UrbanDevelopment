@@ -156,7 +156,7 @@ species homes {
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
 			tax <- tax + 10;
-			my_plot.pol <- 3;
+			my_plot.pol <- 3;//parameter
 //			write("home at random location");
 		} else if (my_plot.is_free = false) {
 			do die;
@@ -165,7 +165,7 @@ species homes {
 			my_plot.is_free <- false;
 			my_plot.type <- "home";
 			tax <- tax + 10;
-			my_plot.pol <- 3;
+			my_plot.pol <- 3; //parameter
 //			write("home at selected location "+ my_plot);
 		}
 	}
@@ -199,7 +199,7 @@ species homes {
 		reflex update_happiness{
 			int nbneighbor_business <- count(my_plot.neighbors, each.type = "business");			
 			happiness <- 100;
-			happiness <- 100 - nbneighbor_business*10 - my_plot.nbpol*2;	
+			happiness <- 100 - nbneighbor_business*10 - my_plot.nbpol*2; //parameter	
 			write ("hapiness: " + happiness);
 		}
 
@@ -280,7 +280,7 @@ species businesses{
 		
 	}
 	
-	reflex close_business when: (cycle mod 10 = 0) {
+	reflex close_business {
 		if (shoppingtime<shoppingtimethreshold) {
 			my_plot.is_free <- true;
 			my_plot.type <- nil;
