@@ -6,13 +6,23 @@ global {
 	geometry shape <- envelope(road_shapefile);
 	graph road_network;
 	path shortest_path;
-	float close_down_rate <- 0.001;
+	float close_down_rate <- 0.00;
 	int tax;
 	int index <- 1;
 	
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
 	int y <- round(shape.width/size);
+	
+	int nb_homes -> {length(homes)};
+	int nb_businesses -> {length(businesses)};
+	int nb_greensquare -> {length(greensquare)};
+	
+	int total_pol1 <- 0;
+	int total_pol2 <- 0;
+	int total_pol3 <- 0;
+	
+	float total_happiness <- 0;
 
 	init{
 			create roads from: road_shapefile;
@@ -29,11 +39,63 @@ global {
 		do pause;
 	}
 	
-	action my_action
+	reflex happiness_calculate{
+		total_happiness <- 0.0;
+		loop i from: 0 to: y step: 1{
+			loop j from: 0 to: y step: 1 {
+				if (plot[i, j] != nil and plot[i,j].type = "home"){
+					total_happiness <- total_happiness + plot[i,j].happiness;
+				}
+			}
+		}
+	}
+	
+	reflex pollution_caculate{
+		int district_width <- round(y/3);
+		
+		loop i from: 0 to: district_width step: 1{
+			loop j from: 0 to: x step: 1 {
+				if (plot[i, j] != nil){
+					int temp <- plot[i, j].pol;
+					total_pol1 <- total_pol1 + temp;
+				}
+			}
+		}
+		
+		loop i from: district_width to: 2 * district_width step: 1{
+			loop j from: 0 to: x step: 1 {
+				if (plot[i, j] != nil){
+					int temp <- plot[i, j].pol;
+					total_pol2 <- total_pol2 + temp;
+				}
+			}
+		}
+		
+		loop i from: 2 * district_width to: x step: 1{
+			loop j from: 0 to: x step: 1 {
+				if (plot[i, j] != nil){
+					int temp <- plot[i, j].pol;
+					total_pol3 <- total_pol3 + temp;
+				}
+			}
+		}
+	}
+	
+	action create_green
     {
         create greensquare number: 1;
     }
+    
+    action create_home
+    {
+        create homes number: 1 with: (my_plot: first(plot overlapping #user_location));
+    }
 	
+	
+	action create_business
+    {
+       create businesses number: 1 with: (my_plot: first(plot overlapping #user_location));
+    }
 }
 
 //x and y needs to adapt to shape file road dynamically
@@ -42,11 +104,25 @@ grid plot height: x width: y neighbors: 8{
 	string type;
 	int pol;
 	int nbpol;
+	float happiness;
+	
+	reflex update_happiness{
+		if(self.type = "home"){
+			happiness <- 1.0;
+			loop i over: self.neighbors {
+				if(i!= nil and i.type = "business"){
+					happiness <- happiness - 0.2;
+				}
+			}
+		}else{
+			happiness <- 0.0;
+		}
+	}
 	
 	reflex updatepol{
 		loop i over: self.neighbors{
 			nbpol <- pol;
-			nbpol <- nbpol + i.pol;	
+			nbpol <- nbpol + i.pol;
 		}
 	}
 	
@@ -62,15 +138,11 @@ species roads{
 	list<plot> my_plots;
 	init {
 		my_plots <- plot overlapping self;
-			loop i over: my_plots{
-//				i.color <- #red;
-				loop j over: i.neighbors{
-					j.is_free <-true;
-//					j.pol <-1;
-				}
-//				i.pol <-2;
-			}	
-//		write my_plots;
+		loop i over: my_plots{
+			loop j over: i.neighbors{
+				j.is_free <-true;
+			}
+		}	
 	}	
 	
 	
@@ -87,24 +159,26 @@ species homes {
 	plot my_plot;
 	point source;
 	point target;
-	geometry g;
+	geometry g;	
 	
 	int inhabitants_number<- rnd(1000);
 	
 	init {
-		if(my_plot = nil){
+		if(my_plot = nil){		
 			my_plot <- one_of(plot where (each.is_free = true));
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
-			tax <- tax+10;
+			tax <- tax + 10;
 			my_plot.pol <- 3;
 //			write("home at random location");
-		}else{
+		} else if (my_plot.is_free = false) {
+			do die;
+		} else{	
 			location <- my_plot.location;
 			my_plot.is_free <- false;
-			my_plot.type <-"home";
-			tax <- tax+10;
+			my_plot.type <- "home";
+			tax <- tax + 10;
 			my_plot.pol <- 3;
 //			write("home at selected location "+ my_plot);
 		}
@@ -133,15 +207,21 @@ species homes {
 			if (p.is_free = true){
 				create homes number: 1 with: (my_plot: p);
 			}
-			
-			}
-			
+		}
 	}
 	
-	reflex destroy_home when: flip(close_down_rate){
-		my_plot.is_free <- false;
+	reflex destroy_home when:  flip(close_down_rate < my_plot.happiness ? close_down_rate : my_plot.happiness){
+		my_plot.is_free <- true;
 		my_plot.type <- nil;
+		my_plot.happiness <- 0.0;
 		do die;
+	}
+	
+	reflex shopping{
+		loop times:10{
+			businesses a <- one_of(businesses);
+			a.shoppingtime <- a.shoppingtime + 1;
+		}
 	}
 	
 	
@@ -158,11 +238,13 @@ species homes {
 
 //inherits from buildings
 //location bases on number of inhabitants
-// buiness creates jobs, facility --> increase hapiness --> need formula
+//buiness creates jobs, facility --> increase hapiness --> need formula
 //businesses creates pollution -> decrease hapiness
 species businesses{
-	
 	plot my_plot;
+	int shoppingtimethreshold <- cycle max:30;
+	int shoppingtime;
+	
 		
 	init {
 		if(my_plot = nil){
@@ -170,20 +252,21 @@ species businesses{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			tax <- tax+20;
-			
+			tax <- tax + 20;
 			my_plot.pol <- 5;
 //			write("business at random location");
-		}else{
+		}else if (my_plot.is_free = false) {
+			do die;
+		} else{
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
-			tax <- tax+20;
+			tax <- tax + 20;
 			my_plot.pol <- 5;
 //			write("business at selected location:"+ my_plot);
 		}
 	}
-	
+		
 	reflex new_business{
 		plot home_plot <- one_of(plot where(each.type = "home"));
 		plot new_plot <- one_of(home_plot.neighbors where(each.is_free = true));
@@ -199,10 +282,18 @@ species businesses{
 		
 	}
 	
-	reflex close_business when: flip(close_down_rate){
-		my_plot.is_free <- false;
-		my_plot.type <- nil;
-		do die;
+	reflex close_business when: (cycle mod 10 = 0) {
+		if (shoppingtime<shoppingtimethreshold) {
+			my_plot.is_free <- true;
+			my_plot.type <- nil;
+			write("number of shopping time: " +shoppingtime);
+			do die;
+		}
+	
+	}
+	
+	reflex update_shopping_time{
+		shoppingtime <- 0;
 	}
 	
 //	reflex new_random_business when: flip(close_down_rate){
@@ -221,20 +312,32 @@ species greensquare {
 	init{
 		my_plot <- first(plot overlapping #user_location);
 		if (my_plot.is_free =true){
-			location <- my_plot.location;
-			my_plot.is_free <- false;
-			my_plot.type <- "green";
-			my_plot.pol <- -5;
-			write("case 1");
-			tax <- tax-100;
-		}else if(my_plot.is_free = false and my_plot.type = nil){
-			location <- my_plot.location;
-			my_plot.is_free <- false;
-			my_plot.type <- "green";
-			my_plot.pol <- -5;
-			write("case 1.1");
-			tax <- tax-50;
+			if !(tax < 100){
+				location <- my_plot.location;
+				my_plot.is_free <- false;
+				my_plot.type <- "green";
+				my_plot.pol <- -5;
+				write("case 1");
+				tax <- tax-100;
+			}else {
+				bool  result <- user_confirm("Alert","You don't have enough money");
+					do die;
+			}
+			if(my_plot.is_free = false and my_plot.type = nil){
+				if !(tax < 50){
+					location <- my_plot.location;
+					my_plot.is_free <- false;
+					my_plot.type <- "green";
+					my_plot.pol <- -5;
+					write("case 1.1");
+					tax <- tax-50;
+				}else{
+					bool  result <- user_confirm("Alert","You don't have enough money");
+					do die;
+				}
+			}
 		}else if(my_plot.is_free = false and my_plot.type ="home"){
+			if !(tax - 200 < 0){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
@@ -242,10 +345,15 @@ species greensquare {
 			ask homes overlapping my_plot{
 				do die;
 			}
-			tax <- tax-200;
-			write("case 2");
+				tax <- tax-200;
+			}else{
+				bool  result <- user_confirm("Alert","You don't have enough money");
+				do die;
+				write("not enough money!");
+			}
 		}
 		else if(my_plot.is_free = false and my_plot.type ="business"){
+			if !(tax - 400 < 0){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
@@ -253,12 +361,11 @@ species greensquare {
 			ask businesses overlapping my_plot{
 				do die;
 			}
-			if !(tax - 400 < 0){
 				tax <- tax-400;
 			}else{
-				write("not enough money!");
+				bool  result <- user_confirm("Alert","You don't have enough money");
+				do die;
 			}
-			
 			write("case 3");
 			}
 		else{
@@ -286,12 +393,30 @@ experiment UrbanDevelopment type: gui {
 			species businesses transparency:0.5;
 			species greensquare transparency:0.5;
 			grid plot transparency:0.7 border:#black;
-			event 'g' action: my_action;
+			event 'g' action: create_green;
+			event 'h' action: create_home;
+			event 'b' action: create_business;
+			
 		}
 		
-		monitor "Tax amount" value: tax refresh: true;
+		display chart_display refresh:every(1#cycles) {
+            chart "Urban Development" type: series {
+                 data "Number of homes" value: nb_homes style: line color: #blue ;
+             	 data "Number of businesses" value: nb_businesses style: line color: #red ;
+             	 data "Number of green square" value: nb_greensquare style: line color: #green;
+             	 data "Happiness" value: total_happiness style:line color: #cyan;
+         	}
+         }
+         
+         display pollution_chart refresh:every(1#cycles){
+         	chart "Pollution of 4 districts" type: series{
+         		data "District I" value: total_pol1 color: #red;
+         		data "District II" value: total_pol2 color: #green;
+         		data "District III" value: total_pol3 color: #yellow;
+         	}
+         }
 		
-		
+		monitor "Tax amount" value: tax;
+		monitor "Total happiness" value: total_happiness;
 	}
-		
 }
