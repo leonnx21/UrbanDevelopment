@@ -107,9 +107,9 @@ species roads{
 //				i.color <- #red;
 				loop j over: i.neighbors{
 					j.is_free <-true;
-//					j.pol <-1;
+					j.pol <-1;
 				}
-//				i.pol <-2;
+				i.pol <-2;
 			}	
 //		write my_plots;
 	}	
