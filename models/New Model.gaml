@@ -144,7 +144,7 @@ species homes {
 	point source;
 	point target;
 	geometry g;	
-	float happiness;
+	float happiness <- 100;
 	
 	
 	int inhabitants_number<- rnd(1000);
@@ -197,25 +197,22 @@ species homes {
 	}
 	
 		reflex update_happiness{
-		if(my_plot.type = "home"){
-			happiness <- 1.0;
-			loop i over: my_plot.neighbors {
-				if(i!= nil and i.type = "business"){
-					happiness <- happiness - 0.2;
-				}
-			}
-		}else{
-			happiness <- 0.0;
+			int nbneighbor_business <- count(my_plot.neighbors, each.type = "business");			
+			happiness <- 100;
+			happiness <- 100 - nbneighbor_business*10 - my_plot.nbpol*2;	
+			write ("hapiness: " + happiness);
 		}
-	}
+
 	
 	
 	
-	reflex destroy_home when:  (happiness < 0){
-		my_plot.is_free <- true;
-		my_plot.type <- nil;
-		happiness <- 0.0;
-		do die;
+	reflex destroy_home{
+		if (happiness < 50){
+			my_plot.is_free <- true;
+			my_plot.type <- nil;
+			do die;
+		}
+		
 	}
 	
 	reflex shopping{
@@ -406,7 +403,7 @@ experiment UrbanDevelopment type: gui {
                  data "Number of homes" value: nb_homes style: line color: #blue ;
              	 data "Number of businesses" value: nb_businesses style: line color: #red ;
              	 data "Number of green square" value: nb_greensquare style: line color: #green;
-             	 data "Happiness" value: total_happiness style:line color: #cyan;
+             	 //data "Happiness" value: total_happiness style:line color: #cyan;
          	}
          }
          
@@ -419,6 +416,6 @@ experiment UrbanDevelopment type: gui {
          }
 		
 		monitor "Tax amount" value: tax;
-		monitor "Total happiness" value: total_happiness;
+		//monitor "Total happiness" value: total_happiness;
 	}
 }
