@@ -41,14 +41,11 @@ global {
 	
 	reflex happiness_calculate{
 		total_happiness <- 0.0;
-		loop i from: 0 to: y step: 1{
-			loop j from: 0 to: y step: 1 {
-				if (plot[i, j] != nil and plot[i,j].type = "home"){
-					total_happiness <- total_happiness + plot[i,j].happiness;
+		loop i over: homes{
+					total_happiness <- total_happiness + i.happiness;
 				}
 			}
-		}
-	}
+
 	
 	reflex pollution_caculate{
 		int district_width <- round(y/3);
@@ -104,21 +101,8 @@ grid plot height: x width: y neighbors: 8{
 	string type;
 	int pol;
 	int nbpol;
-	float happiness;
 	
-	reflex update_happiness{
-		if(self.type = "home"){
-			happiness <- 1.0;
-			loop i over: self.neighbors {
-				if(i!= nil and i.type = "business"){
-					happiness <- happiness - 0.2;
-				}
-			}
-		}else{
-			happiness <- 0.0;
-		}
-	}
-	
+
 	reflex updatepol{
 		loop i over: self.neighbors{
 			nbpol <- pol;
@@ -160,6 +144,8 @@ species homes {
 	point source;
 	point target;
 	geometry g;	
+	float happiness;
+	
 	
 	int inhabitants_number<- rnd(1000);
 	
@@ -210,10 +196,25 @@ species homes {
 		}
 	}
 	
-	reflex destroy_home when:  flip(close_down_rate < my_plot.happiness ? close_down_rate : my_plot.happiness){
+		reflex update_happiness{
+		if(my_plot.type = "home"){
+			happiness <- 1.0;
+			loop i over: my_plot.neighbors {
+				if(i!= nil and i.type = "business"){
+					happiness <- happiness - 0.2;
+				}
+			}
+		}else{
+			happiness <- 0.0;
+		}
+	}
+	
+	
+	
+	reflex destroy_home when:  (happiness < 0){
 		my_plot.is_free <- true;
 		my_plot.type <- nil;
-		my_plot.happiness <- 0.0;
+		happiness <- 0.0;
 		do die;
 	}
 	
@@ -291,6 +292,7 @@ species businesses{
 		}
 	
 	}
+	
 	
 	reflex update_shopping_time{
 		shoppingtime <- 0;
