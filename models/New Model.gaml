@@ -22,7 +22,17 @@ global {
 	int total_pol2 <- 0;
 	int total_pol3 <- 0;
 	
-	float total_happiness <- 0;
+	float total_happiness <- 0.0;
+	
+	int road_pollution <- 10;
+	int home_pollution <- 3;
+	int business_pollution <- 40;
+	int green_square_pollution_reduction <- 5;
+	int pollution_multiplier <- 3;
+	int shopping_freq <- 30;
+	int business_shopping_threshold <- 30;
+	float base_happiness <- 100.0;
+	float happiness_threshold <- 0.5;
 
 	init{
 			create roads from: road_shapefile;
@@ -100,15 +110,21 @@ grid plot height: x width: y neighbors: 8{
 	bool is_free <- false;
 	string type;
 	int pol;
+	int pol_from_road;
 	int nbpol;
 	
 
 	reflex updatepol{
 		loop i over: self.neighbors{
-			nbpol <- pol;
+			nbpol <- pol + pol_from_road;
 			nbpol <- nbpol + i.pol;
 		}
 	}
+	
+//	reflex reset_pol{
+//		pol <- 0;
+//	}
+	
 	
 	aspect default{
 		draw square(size);			
@@ -123,6 +139,7 @@ species roads{
 	init {
 		my_plots <- plot overlapping self;
 		loop i over: my_plots{
+			i.pol_from_road <- road_pollution;
 			loop j over: i.neighbors{
 				j.is_free <-true;
 			}
@@ -144,7 +161,7 @@ species homes {
 	point source;
 	point target;
 	geometry g;	
-	float happiness <- 100;
+	float happiness <- base_happiness;
 	
 	
 	int inhabitants_number<- rnd(1000);
@@ -156,7 +173,7 @@ species homes {
 			my_plot.is_free <- false;
 			my_plot.type <-"home";
 			tax <- tax + 10;
-			my_plot.pol <- 3;//parameter
+			my_plot.pol <- home_pollution;//parameter
 //			write("home at random location");
 		} else if (my_plot.is_free = false) {
 			do die;
@@ -165,7 +182,7 @@ species homes {
 			my_plot.is_free <- false;
 			my_plot.type <- "home";
 			tax <- tax + 10;
-			my_plot.pol <- 3; //parameter
+			my_plot.pol <- home_pollution; //parameter
 //			write("home at selected location "+ my_plot);
 		}
 	}
@@ -181,25 +198,26 @@ species homes {
 //			write ("target: "+ target);
 			
 			shortest_path <- path_between(road_network, source,target);
-			
-			geometry sp <- shortest_path.shape;	
-//			write("shortest path: " +sp);
-					
-			list<plot> pl <- plot overlapping sp;
+			if (shortest_path != nil){
+			geometry sp <- shortest_path.shape; 	
+//			write("shortest path: " +sp); 		
+				list<plot> pl <- plot overlapping sp;
 //			write("plot: "+ pl);	
 			
-			plot p <- one_of(one_of(pl).neighbors);
+				plot p <- one_of(one_of(pl).neighbors);
+				
+				if (p.is_free = true){
+					create homes number: 1 with: (my_plot: p);
+				}
+			}		
 			
-			if (p.is_free = true){
-				create homes number: 1 with: (my_plot: p);
-			}
 		}
 	}
 	
 		reflex update_happiness{
 			int nbneighbor_business <- count(my_plot.neighbors, each.type = "business");			
-			happiness <- 100;
-			happiness <- 100 - nbneighbor_business*10 - my_plot.nbpol*2; //parameter	
+			happiness <- base_happiness;
+			happiness <- base_happiness - my_plot.nbpol*pollution_multiplier; 
 			write ("hapiness: " + happiness);
 		}
 
@@ -207,7 +225,7 @@ species homes {
 	
 	
 	reflex destroy_home{
-		if (happiness < 50){
+		if (happiness < base_happiness*happiness_threshold){
 			my_plot.is_free <- true;
 			my_plot.type <- nil;
 			do die;
@@ -216,7 +234,7 @@ species homes {
 	}
 	
 	reflex shopping{
-		loop times:10{
+		loop times:shopping_freq{
 			businesses a <- one_of(businesses);
 			a.shoppingtime <- a.shoppingtime + 1;
 		}
@@ -240,7 +258,7 @@ species homes {
 //businesses creates pollution -> decrease hapiness
 species businesses{
 	plot my_plot;
-	int shoppingtimethreshold <- cycle max:30;
+	int shoppingtimethreshold <- cycle max:business_shopping_threshold;
 	int shoppingtime;
 	
 		
@@ -251,7 +269,7 @@ species businesses{
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
 			tax <- tax + 20;
-			my_plot.pol <- 5;
+			my_plot.pol <- business_pollution;
 //			write("business at random location");
 		}else if (my_plot.is_free = false) {
 			do die;
@@ -260,7 +278,7 @@ species businesses{
 			my_plot.is_free <- false;
 			my_plot.type <-"business";
 			tax <- tax + 20;
-			my_plot.pol <- 5;
+			my_plot.pol <- business_pollution;
 //			write("business at selected location:"+ my_plot);
 		}
 	}
@@ -268,6 +286,7 @@ species businesses{
 	reflex new_business{
 		plot home_plot <- one_of(plot where(each.type = "home"));
 		plot new_plot <- one_of(home_plot.neighbors where(each.is_free = true));
+		//plot new_plot <- one_of(plot where(each.is_free = true));
 		
 		if(new_plot != nil){
 			int nbhome <- count(new_plot.neighbors, each.type = "home");
@@ -280,7 +299,7 @@ species businesses{
 		
 	}
 	
-	reflex close_business {
+	reflex close_business when: (cycle mod 3 = 0){
 		if (shoppingtime<shoppingtimethreshold) {
 			my_plot.is_free <- true;
 			my_plot.type <- nil;
@@ -307,6 +326,7 @@ species businesses{
 //locations are decided by government/users
 species greensquare {
 	plot my_plot;
+	list<plot> green_plot;
 		
 	init{
 		my_plot <- first(plot overlapping #user_location);
@@ -315,7 +335,7 @@ species greensquare {
 				location <- my_plot.location;
 				my_plot.is_free <- false;
 				my_plot.type <- "green";
-				my_plot.pol <- -5;
+				my_plot.pol <- - green_square_pollution_reduction;
 				write("case 1");
 				tax <- tax-100;
 			}else {
@@ -327,7 +347,7 @@ species greensquare {
 					location <- my_plot.location;
 					my_plot.is_free <- false;
 					my_plot.type <- "green";
-					my_plot.pol <- -5;
+					my_plot.pol <- -green_square_pollution_reduction;
 					write("case 1.1");
 					tax <- tax-50;
 				}else{
@@ -340,7 +360,7 @@ species greensquare {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
-			my_plot.pol <- -5;
+			my_plot.pol <- - green_square_pollution_reduction;
 			ask homes overlapping my_plot{
 				do die;
 			}
@@ -356,7 +376,7 @@ species greensquare {
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
-			my_plot.pol <- -5;
+			my_plot.pol <- -green_square_pollution_reduction;
 			ask businesses overlapping my_plot{
 				do die;
 			}
@@ -370,9 +390,17 @@ species greensquare {
 		else{
 			write("case 4");
 			do die;
-			
 		}
+		
+//		do create_nbgreen;
 	}
+		
+//	action create_nbgreen{
+//		green_plot <- my_plot.neighbors;
+//		loop i over:green_plot{
+//			create greensquare number: 1 with: (my_plot: i);
+//		}
+//	}
 		
 		
 	aspect default{
@@ -383,7 +411,7 @@ species greensquare {
 
 experiment UrbanDevelopment type: gui {
 	/** Insert here the definition of the input and output of the model */
-	parameter "size of buildings" var:size;
+
 	
 	output {
  		display map {
@@ -400,8 +428,8 @@ experiment UrbanDevelopment type: gui {
 		
 		display chart_display refresh:every(1#cycles) {
             chart "Urban Development" type: series {
-                 data "Number of homes" value: nb_homes style: line color: #blue ;
-             	 data "Number of businesses" value: nb_businesses style: line color: #red ;
+                 data "Number of homes" value: nb_homes style: line color: #red ;
+             	 data "Number of businesses" value: nb_businesses style: line color: #blue ;
              	 data "Number of green square" value: nb_greensquare style: line color: #green;
              	 //data "Happiness" value: total_happiness style:line color: #cyan;
          	}
@@ -416,6 +444,23 @@ experiment UrbanDevelopment type: gui {
          }
 		
 		monitor "Tax amount" value: tax;
-		//monitor "Total happiness" value: total_happiness;
+		monitor "Total happiness" value: total_happiness;
 	}
+	
+	
+	parameter "size of buildings" category: "General" var:size;	
+	
+	parameter "Road pollution" category: "Pollution" var: road_pollution;
+	parameter "Home pollution" category: "Pollution" var: home_pollution;
+	parameter "Business pollution" category: "Pollution" var: business_pollution;
+	parameter "Green square pollution reduction" category: "Pollution" var: green_square_pollution_reduction;
+	
+	parameter "Pollution multi" category: "Interaction" var: pollution_multiplier;
+	parameter "base happiness" category: "Interaction" var: base_happiness;
+	parameter "Minimum happiness" category: "Interaction" var: happiness_threshold;
+	parameter "Shopping frequency" category: "Interaction" var: shopping_freq;
+	parameter "Minimum shopping per cycle" category: "Interaction" var: business_shopping_threshold;
+	
+	
+	
 }
