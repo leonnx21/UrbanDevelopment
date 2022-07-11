@@ -26,13 +26,15 @@ global {
 	
 	int road_pollution <- 10;
 	int home_pollution <- 3;
-	int business_pollution <- 40;
+	int business_pollution <- 20;
 	int green_square_pollution_reduction <- 5;
 	int pollution_multiplier <- 3;
+	int business_proximity_multiplier <- 5;
+	
 	int shopping_freq <- 30;
 	int business_shopping_threshold <- 30;
 	float base_happiness <- 100.0;
-	float happiness_threshold <- 0.5;
+	float happiness_threshold <- 0.1;
 
 	init{
 			create roads from: road_shapefile;
@@ -215,16 +217,23 @@ species homes {
 	}
 	
 		reflex update_happiness{
-			int nbneighbor_business <- count(my_plot.neighbors, each.type = "business");			
+			//int nbneighbor_business <- count(my_plot.neighbors, each.type = "business");			
+//			bool b <- true;
+			list<plot> p <- my_plot.neighbors;
+			point b_plot <- businesses closest_to my_plot;
+			float dist <- distance_to(self.location, b_plot) / size;
+//			write("distance:" +dist);
+		
 			happiness <- base_happiness;
-			happiness <- base_happiness - my_plot.nbpol*pollution_multiplier; 
+			
+			happiness <- base_happiness + dist*business_proximity_multiplier - my_plot.nbpol*pollution_multiplier; 
 			write ("hapiness: " + happiness);
 		}
 
 	
 	
 	
-	reflex destroy_home{
+	reflex destroy_home when: (cycle mod 3 = 0){
 		if (happiness < base_happiness*happiness_threshold){
 			my_plot.is_free <- true;
 			my_plot.type <- nil;
@@ -303,7 +312,7 @@ species businesses{
 		if (shoppingtime<shoppingtimethreshold) {
 			my_plot.is_free <- true;
 			my_plot.type <- nil;
-			write("number of shopping time: " +shoppingtime);
+//			write("number of shopping time: " +shoppingtime);
 			do die;
 		}
 	
@@ -455,7 +464,9 @@ experiment UrbanDevelopment type: gui {
 	parameter "Business pollution" category: "Pollution" var: business_pollution;
 	parameter "Green square pollution reduction" category: "Pollution" var: green_square_pollution_reduction;
 	
-	parameter "Pollution multi" category: "Interaction" var: pollution_multiplier;
+	parameter "Pollution multiplier" category: "Interaction" var: pollution_multiplier;
+	parameter "Business distance multiplier" category: "Interaction" var: business_proximity_multiplier;
+
 	parameter "base happiness" category: "Interaction" var: base_happiness;
 	parameter "Minimum happiness" category: "Interaction" var: happiness_threshold;
 	parameter "Shopping frequency" category: "Interaction" var: shopping_freq;
