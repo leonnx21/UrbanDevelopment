@@ -1,4 +1,4 @@
-	model NewModel
+model NewModel
 
 global {	
 	shape_file road_shapefile <- shape_file("../includes/roads15_3.shp");
@@ -13,7 +13,7 @@ global {
 	int size <- 500;
 	int x <- round(shape.height/size); //need to get from shape file road
 	int y <- round(shape.width/size);
-	
+
 	int nb_homes -> {length(homes)};
 	int nb_businesses -> {length(businesses)};
 	int nb_greensquare -> {length(greensquare)};
@@ -44,6 +44,22 @@ global {
 			//created dummy for illustration in development
 			create homes number: 10;
 			create businesses number: 10;
+			
+			loop i from: 0 to: round(y/3) step: 1{
+				loop j from: 0 to: x step: 1 {
+					plot[i, j].color <- #cornflowerblue;
+				}
+			}
+			loop i from: round(y/3) to: 2 * round(y/3) step: 1{
+				loop j from: 0 to: x step: 1 {
+					plot[i, j].color <- #white;
+				}
+			}
+			loop i from: 2 * round(y/3) to: 3 * round(y/3) step: 1{
+				loop j from: 0 to: x step: 1 {
+					plot[i, j].color <- #indianred;
+				}
+			}
 	}
 	
 	reflex pause_experiment when: time= index*10{
@@ -80,7 +96,7 @@ global {
 			}
 		}
 		
-		loop i from: 2 * district_width to: x step: 1{
+		loop i from: 2 * district_width to: 3 * district_width step: 1{
 			loop j from: 0 to: x step: 1 {
 				if (plot[i, j] != nil){
 					int temp <- plot[i, j].pol;
@@ -418,11 +434,12 @@ species greensquare {
 }
 
 
-experiment UrbanDevelopment type: gui {
+experiment BuildCity type: gui {
 	/** Insert here the definition of the input and output of the model */
 
 	
 	output {
+		monitor "Tax amount" value: tax;
  		display map {
 			species roads;
 			species homes transparency:0.5;
@@ -445,32 +462,32 @@ experiment UrbanDevelopment type: gui {
          }
          
          display pollution_chart refresh:every(1#cycles){
-         	chart "Pollution of 4 districts" type: series{
+         	chart "Pollution of 3 districts" type: series{
          		data "District I" value: total_pol1 color: #red;
          		data "District II" value: total_pol2 color: #green;
          		data "District III" value: total_pol3 color: #yellow;
          	}
          }
 		
-		monitor "Tax amount" value: tax;
-		monitor "Total happiness" value: total_happiness;
+		
+//		monitor "Total happiness" value: total_happiness;
 	}
 	
 	
-	parameter "size of buildings" category: "General" var:size;	
-	
-	parameter "Road pollution" category: "Pollution" var: road_pollution;
-	parameter "Home pollution" category: "Pollution" var: home_pollution;
-	parameter "Business pollution" category: "Pollution" var: business_pollution;
-	parameter "Green square pollution reduction" category: "Pollution" var: green_square_pollution_reduction;
-	
-	parameter "Pollution multiplier" category: "Interaction" var: pollution_multiplier;
-	parameter "Business distance multiplier" category: "Interaction" var: business_proximity_multiplier;
-
-	parameter "base happiness" category: "Interaction" var: base_happiness;
-	parameter "Minimum happiness" category: "Interaction" var: happiness_threshold;
-	parameter "Shopping frequency" category: "Interaction" var: shopping_freq;
-	parameter "Minimum shopping per cycle" category: "Interaction" var: business_shopping_threshold;
+//	parameter "size of buildings" category: "General" var:size;	
+//	
+//	parameter "Road pollution" category: "Pollution" var: road_pollution;
+//	parameter "Home pollution" category: "Pollution" var: home_pollution;
+//	parameter "Business pollution" category: "Pollution" var: business_pollution;
+//	parameter "Green square pollution reduction" category: "Pollution" var: green_square_pollution_reduction;
+//	
+//	parameter "Pollution multiplier" category: "Interaction" var: pollution_multiplier;
+//	parameter "Business distance multiplier" category: "Interaction" var: business_proximity_multiplier;
+//
+//	parameter "base happiness" category: "Interaction" var: base_happiness;
+//	parameter "Minimum happiness" category: "Interaction" var: happiness_threshold;
+//	parameter "Shopping frequency" category: "Interaction" var: shopping_freq;
+//	parameter "Minimum shopping per cycle" category: "Interaction" var: business_shopping_threshold;
 	
 	
 	
