@@ -7,7 +7,7 @@ global {
 	graph road_network;
 	path shortest_path;
 	float close_down_rate <- 0.00;
-	int tax;
+	int tax <- 700;
 	int index <- 1;
 	
 	int size <- 500;
@@ -21,13 +21,14 @@ global {
 	int total_pol1 <- 0;
 	int total_pol2 <- 0;
 	int total_pol3 <- 0;
+	int total_pollution <- 0;
 	
 	float total_happiness <- 0.0;
 	
 	int road_pollution <- 10;
 	int home_pollution <- 3;
 	int business_pollution <- 20;
-	int green_square_pollution_reduction <- 5;
+	int green_square_pollution_reduction <- 50;
 	int pollution_multiplier <- 3;
 	int business_proximity_multiplier <- 5;
 	
@@ -104,6 +105,8 @@ global {
 				}
 			}
 		}
+		
+		total_pollution <- total_pol1 + total_pol2 + total_pol3;
 	}
 	
 	action create_green
@@ -381,7 +384,7 @@ species greensquare {
 				}
 			}
 		}else if(my_plot.is_free = false and my_plot.type ="home"){
-			if !(tax - 200 < 0){
+			if !(tax - 150 < 0){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
@@ -389,7 +392,7 @@ species greensquare {
 			ask homes overlapping my_plot{
 				do die;
 			}
-				tax <- tax-200;
+				tax <- tax-150;
 			}else{
 				bool  result <- user_confirm("Alert","You don't have enough money");
 				do die;
@@ -397,7 +400,7 @@ species greensquare {
 			}
 		}
 		else if(my_plot.is_free = false and my_plot.type ="business"){
-			if !(tax - 400 < 0){
+			if !(tax - 200 < 0){
 			location <- my_plot.location;
 			my_plot.is_free <- false;
 			my_plot.type <- "green";
@@ -405,7 +408,7 @@ species greensquare {
 			ask businesses overlapping my_plot{
 				do die;
 			}
-				tax <- tax-400;
+				tax <- tax-100;
 			}else{
 				bool  result <- user_confirm("Alert","You don't have enough money");
 				do die;
@@ -469,7 +472,7 @@ experiment BuildCity type: gui {
          	}
          }
 		
-		
+		monitor "City pollution" value: total_pollution;
 //		monitor "Total happiness" value: total_happiness;
 	}
 	
